@@ -601,9 +601,6 @@ InspectEquip_ItemSources = {
 	[615] = BB["Seal of Eternity"] or "Seal of Eternity",	
 	[616] = BB["Seal of the Titans"] or "Seal of the Titans",
 	[617] = BB["Gorelac"] or "Gorelac",	
-	[618] = BB["Seventh Legion"] or "Seventh Legion",	
-	[619] = BB["Golden Scorpid"] or "Golden Scorpid",	
-	[620] = BB["Kor'kron_Battalion"] or "Kor'kron_Battalion",	
   },
   Items = {
     [872] = "d_364_d_372",
@@ -14303,6 +14300,57 @@ InspectEquip_ItemSources = {
   [26540] = "time",
   [26542] = "time",
 
+  [26456] = "time",
+  [26477] = "time",
+  [26472] = "time",
+  [26482] = "time",
+  [26474] = "time",
+  [26483] = "time",
+  [26475] = "time",
+  [26484] = "time",
+  [26488] = "time",
+  [26476] = "time",
+  [26492] = "time",
+  [26485] = "time",
+  [26494] = "time",
+  [26490] = "time",
+  [26493] = "time",
+  [26491] = "time",
+  [26496] = "time",
+  [26501] = "time",
+  [26497] = "time",
+  [26502] = "time",
+  [26498] = "time",
+  [26516] = "time",
+  [26499] = "time",
+  [26517] = "time",
+  [26820] = "time",
+  [26500] = "time",
+  [26829] = "time",
+  [26812] = "time",
+  [26837] = "time",
+  [26821] = "time",
+  [26836] = "time",
+  [26828] = "time",
+  [26350] = "time",
+  [26348] = "time",
+  [26354] = "time",
+  [26349] = "time",
+  [26355] = "time",
+  [26453] = "time",
+  [26442] = "time",
+  [26443] = "time",
+  [26451] = "time",
+  [26445] = "time",
+  [26452] = "time",
+  [26450] = "time",
+  [26358] = "time",
+  [26362] = "time",
+  [26357] = "time",
+  [26363] = "time",
+  [26356] = "time",
+  [50593] = "time",
+
   [26184] = "WB",
   [26176] = "WB",
   [26168] = "WB",
@@ -14321,18 +14369,19 @@ InspectEquip_ItemSources = {
   [26928] = "WB",
   [26920] = "WB",
   [26952] = "WB",
+  [26884] = "WB",
+  [26877] = "WB",
+  [26876] = "WB",
+  [26852] = "WB",
+  [26853] = "WB",
+  [26885] = "WB",
+  [26845] = "WB",
+  [26844] = "WB",
+  [26868] = "WB",
+  [26860] = "WB",
+  [26869] = "WB",
   
- 
-
-
-
-
-	----s12
-	----s13
-	
-	
-	
-	
+  [70013] = "Ati",
   },
 }
 

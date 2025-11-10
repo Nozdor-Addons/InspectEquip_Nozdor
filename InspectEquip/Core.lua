@@ -34,6 +34,7 @@ local noEnchantWarningSlots = {
 
 
 }
+local socketAddEnchant = { [3446]=true, [3628]=true, [3732]=true, [3750]=true }
 
 local lines = {}
 local numlines = 0
@@ -217,19 +218,21 @@ do
 
 	-- Set up scanning and caching:
 	local numSocketsFromLink = setmetatable({}, { __index = function(t, link)
-		-- Send the link to the tooltip:
+		for i = 1, 10 do textures[i]:Hide() end
+		tooltip:SetOwner(UIParent, "ANCHOR_NONE")
+		tooltip:ClearLines()
 		tooltip:SetHyperlink(link)
-
-		-- Count how many textures are shown:
+		tooltip:Show()
 		local n = 0
 		for i = 1, 10 do
 			if textures[i]:IsShown() then
 				n = n + 1
 			end
 		end
-
-		-- Cache and return the count for this link:
-		t[link] = n
+		if n > 0 then
+			t[link] = n
+		end
+		tooltip:Hide()
 		return n
 	end })
 
@@ -394,7 +397,9 @@ function IE:InspectUnit(unit, ...)
     end
 
 	self:Inspect(unit)
-  end
+
+  self:ScheduleTimer("Inspect", 0.5, unit)
+end
 end
 -- local clock = os.clock
 -- function sleep(n)  -- seconds
@@ -415,7 +420,9 @@ function IE:PaperDollFrame_OnShow()
   if InspectEquipConfig.charWindow then
     IE:SetParent(CharacterFrame)
 	IE:Inspect("player")
-  end
+  
+	IE:ScheduleTimer("Inspect", 0.3, "player")
+end
 -- local slotId = GetInventorySlotInfo("MainHandSlot")
 --/dump local link = GetInventoryItemLink("player", 5)
 --local itemId, enchantId, gem1, gem2, gem3, gem4,gem5,gem6 = strsplit(":",link)
@@ -518,6 +525,9 @@ function IE:Inspect(unit, entry)
   local calciv = InspectEquipConfig.showAvgItemLevel
   local iLevelSum, iCount = 0,0
 
+  local ad_back, ad_rings, ad_weapons, ad_waist = 0,0,0,0
+  local mhLoc, ohLoc, rgLoc = nil, nil, nil
+
 	for _,slot in pairs(slots) do
 	local itemLink = getItem(slot)
 	--	print (itemLink)
@@ -528,6 +538,8 @@ function IE:Inspect(unit, entry)
 			local src, subsrc, lootTable, boss, cost, setname = unpack(sources[1])
 		--		 print (src, subsrc, lootTable, boss, cost, setname)
 			local enchantId = tonumber(itemLink:match("Hitem:%d+:(%d+):"))
+            local eLoc = select(9, GetItemInfo(itemLink))
+            if slot == "MainHandSlot" then mhLoc = eLoc elseif slot == "SecondaryHandSlot" then ohLoc = eLoc elseif slot == "RangedSlot" then rgLoc = eLoc end
 			itemsFound = true
 			---------------------------------------------------------------------сокеты
 
@@ -535,6 +547,28 @@ function IE:Inspect(unit, entry)
 			-- local _, _, _, gem1, gem2, gem3, gem4 = strsplit(":", strmatch(itemLink, "|H(.-)|h"))
 					-- local numFilledSockets = (tonumber(gem1) or 0) + (tonumber(gem2) or 0) + (tonumber(gem3) or 0) + (tonumber(gem4) or 0)
 					local kolvo = GetNumSockets(itemLink)
+                    if (not kolvo or kolvo == 0) and enchantId and socketAddEnchant[enchantId] then kolvo = 1 end
+                    local iid = tonumber(itemLink:match("item:(%d+)"))
+                    if iid then GetItemInfo(iid) end
+                    local baseLink = iid and ("item:"..iid) or itemLink
+                    local st = GetItemStats(baseLink)
+                    local base = 0
+                    if st then
+                      base = (st["EMPTY_SOCKET_META"] or 0) + (st["EMPTY_SOCKET_RED"] or 0) + (st["EMPTY_SOCKET_YELLOW"] or 0) + (st["EMPTY_SOCKET_BLUE"] or 0) + (st["EMPTY_SOCKET_PRISMATIC"] or 0)
+                    end
+                    local ts = kolvo or 0
+                    local extras = ts - base
+                    if extras < 0 then extras = 0 end
+                    if slot == "BackSlot" then
+                      ad_back = ad_back + extras
+                    elseif slot == "Finger0Slot" or slot == "Finger1Slot" then
+                      ad_rings = ad_rings + extras
+                    elseif slot == "WaistSlot" then
+                      ad_waist = ad_waist + extras
+                    elseif slot == "MainHandSlot" or slot == "SecondaryHandSlot" or slot == "RangedSlot" then
+                      ad_weapons = ad_weapons + extras
+                    end
+
 
 					local _, _, _, gem1, gem2, gem3, gem4 = strsplit(":", strmatch(itemLink, "|H(.-)|h"))
 					local gemts1 = (tonumber(gem1) or 0)
@@ -622,14 +656,31 @@ function IE:Inspect(unit, entry)
 	self:AddCats(items, "")
 	if calciv and iCount > 0 then
 		local avgLvl = iLevelSum / iCount
+        local rcol="|cffff0000"
+        local ycol="|cffffff00"
+        local gcol="|cff00ff00"
+        local backStr = (ad_back==0) and (rcol..ad_back.."|r") or (gcol..ad_back.."|r")
+        local ringStr = (ad_rings==0) and (rcol..ad_rings.."|r") or ((ad_rings==1) and (ycol..ad_rings.."|r") or (gcol..ad_rings.."|r"))
+        local weaponMax = 0
+        if mhLoc=="INVTYPE_2HWEAPON" or mhLoc=="INVTYPE_WEAPON" or mhLoc=="INVTYPE_WEAPONMAINHAND" then weaponMax = weaponMax + 1 end
+        if ohLoc=="INVTYPE_WEAPON" or ohLoc=="INVTYPE_WEAPONOFFHAND" then weaponMax = weaponMax + 1 end
+        if rgLoc=="INVTYPE_RANGED" then weaponMax = weaponMax + 1 end
+        local wepStr
+        if ad_weapons==0 then
+          wepStr = rcol..ad_weapons.."|r"
+        elseif weaponMax>0 and ad_weapons>=weaponMax then
+          wepStr = gcol..ad_weapons.."|r"
+        else
+          wepStr = ycol..ad_weapons.."|r"
+        end
 		if bdcount == 0 and jewh >=1 then
-			AVGIL:SetText(L["Avg. Item Level"] .. ": " .. string.format("%.2f", avgLvl) )
+			AVGIL:SetText(L["Avg. Item Level"] .. ": " .. string.format("%.2f", avgLvl) .. " | Доп сокеты П:" .. backStr .. " К:" .. ringStr .. " О:" .. wepStr)
 			AVGIL:Show()
 		elseif bdcount >= 1 and jewh == 0 then
-			AVGIL:SetText(L["Avg. Item Level"] .. ": " .. string.format("%.2f", avgLvl) )
+			AVGIL:SetText(L["Avg. Item Level"] .. ": " .. string.format("%.2f", avgLvl) .. " | Доп сокеты П:" .. backStr .. " К:" .. ringStr .. " О:" .. wepStr)
 			AVGIL:Show()
 		else
-			AVGIL:SetText(L["Avg. Item Level"] .. ": " .. string.format("%.2f", avgLvl) )
+			AVGIL:SetText(L["Avg. Item Level"] .. ": " .. string.format("%.2f", avgLvl) .. " | Доп сокеты П:" .. backStr .. " К:" .. ringStr .. " О:" .. wepStr)
 			AVGIL:Show()
 		end
 	else
@@ -858,11 +909,11 @@ function IE:AddItems(tab, padding,event,unit)
 					if item["gemts"..s] == 0 then
 						suffixsoc[s] = "|cffff0000  Нет |r"
 					elseif item["gemts"..s] == socetsbk["gemts"..s] then
-						suffixsoc[s] = " ЮВод "
+						suffixsoc[s] = (lkGemLabelById and lkGemLabelById[item["gemts"..s]]) or " ЮВод "
 					elseif item["gemts"..s] == socetsiscl["gemts"..s] then
-						suffixsoc[s] = "|cff1293f4  ЛК |r"
+						suffixsoc[s] = (lkGemLabelById and lkGemLabelById[item["gemts"..s]]) or suffixsoc[s] or "|cff1293f4  ??? |r"
 					elseif (item["gemts"..s] > 0 ) and (item["gemts"..s] < 4000) then
-						suffixsoc[s] = "|cff1293f4  ЛК |r"
+						suffixsoc[s] = (lkGemLabelById and lkGemLabelById[item["gemts"..s]]) or suffixsoc[s] or "|cff1293f4  ??? |r"
 					elseif (item["gemts"..s] > 10000) then
 						suffixsoc[s] = "|cffFF7110 ЮВх |r"
 						jewh = jewh + 1
@@ -975,9 +1026,10 @@ function IE:AddItems(tab, padding,event,unit)
 		local prefix = padding
 
 		if InspectEquipConfig.listItemLevels then
-			local _,_,_,ilvl = GetItemInfo(item.link)
-			if ilvl then
-				prefix = padding .. "|cffaaaaaa[" .. ilvl .. "]|r "
+			local _,_,rar,ilvl = GetItemInfo(item.link)
+			if ilvl and rar then
+				local _,_,_,hex = GetItemQualityColor(rar)
+				prefix = padding .. hex .. "[" .. ilvl .. "]|r "
 			end
 		end
 
@@ -1063,7 +1115,9 @@ function IE:FindItem(itemLink, includeUnknown)
 	  elseif cat == "time" then -- Timeless island
         tinsert(sources, {L["Timeless island"]})	  
 	  elseif cat == "WB" then -- Headless Horseman
-        tinsert(sources, {L["Headless Horseman"]})
+        tinsert(sources, {L["Headless Horseman"]})	  
+	  elseif cat == "Ati" then
+        tinsert(sources, {L["Naxxramas"]})
        elseif cat == "auс" then
         tinsert(sources, {L["Auction"]})
 	  elseif cat == "b" then -- Heroic TBC Instances
